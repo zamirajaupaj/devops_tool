@@ -10,11 +10,11 @@ pipeline {
            defaultValue: 'eu-west-1')
 		
 		string(name: 'AWS_KEY',
-           description: 'In witch environment you want to deploy',
+           description: 'aws access key',
            defaultValue: 'xxxxxxx')
 		   
 		string(name: 'AWS_SECRET',
-           description: 'In witch vpc you want to deploy',
+           description: 'aws secret key',
            defaultValue: 'xxxxxxxxx')
 
 	}
