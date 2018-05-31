@@ -1,0 +1,78 @@
+pipeline {
+    agent any
+		parameters {
+		string(name: 'SLACK_CHANNEL',
+           description: 'Default Slack channel to send messages to',
+           defaultValue: '#jenkins')
+			
+		string(name: 'REGION',
+           description: 'The region where you want to deploy',
+           defaultValue: 'eu-west-1')
+		
+		string(name: 'AWS_KEY',
+           description: 'In witch environment you want to deploy',
+           defaultValue: 'xxxxxxx')
+		   
+		string(name: 'AWS_SECRET',
+           description: 'In witch vpc you want to deploy',
+           defaultValue: 'xxxxxxxxx')
+
+	}
+	environment {
+    // Slack configuration 
+		SLACK_COLOR_DANGER  = '#E01563'
+		SLACK_COLOR_INFO    = '#FFFF00'
+		SLACK_COLOR_WARNING = '#FFC300'
+		SLACK_COLOR_GOOD    = '#3EB991'
+
+	}
+    stages {
+		stage('Code Source') { 
+            steps {
+                 sh  """
+                    rm -rf ec2-terraform-packer.git
+		    git clone https://github.com/zamirajaupaj/ec2-terraform-packer.git
+		"""
+            }
+        }
+        stage('Back-end') {
+            agent {
+                docker {
+					image 'zamira/terraform-packer:latest'
+					args '-v /var/lib/jenkins/workspace/$JOB_NAME:/home -w /home'
+				}
+            }
+            steps {
+               sh  """
+					cd /home/ec2-terraform-packer
+					packer build -var aws_access_key=${AWS_KEY} -var aws_secret_key=${AWS_SECRET} packer/packer.json
+					terraform init
+					terraform plan -var 'AWS_KEY=${AWS_KEY}' -var 'AWS_SECRET=${AWS_SECRET}' -var 'region=${REGION}' -out tfplan
+					"""
+            }
+        }
+    }
+	post {
+		aborted {
+		  echo "Sending message to Slack"
+		  slackSend (color: "${env.SLACK_COLOR_WARNING}",
+					 channel: "${params.SLACK_CHANNEL}",
+					 message: "*ABORTED:* Job ${env.JOB_NAME} build ${env.BUILD_NUMBER} by ${env.USER_ID}\n More info at: ${env.BUILD_URL}")
+		} // aborted
+		failure {
+		  echo "Sending message to Slack"
+		  slackSend (color: "${env.SLACK_COLOR_DANGER}",
+					 channel: "${params.SLACK_CHANNEL}",
+					 message: "*FAILED:* Job ${env.JOB_NAME} build ${env.BUILD_NUMBER} by ${env.USER_ID}\n More info at: ${env.BUILD_URL}")
+		} // failure
+		success {
+		  echo "Sending message to Slack"
+		  slackSend (color: "${env.SLACK_COLOR_GOOD}",
+					 channel: "${params.SLACK_CHANNEL}",
+					 message: "*SUCCESS:* Job ${env.JOB_NAME} build ${env.BUILD_NUMBER} by ${env.USER_ID}\n More info at: ${env.BUILD_URL}")
+		} // success
+		always { 
+			cleanWs()
+		}
+	}
+}
