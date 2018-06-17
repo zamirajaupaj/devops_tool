@@ -17,6 +17,27 @@ pipeline {
            description: 'aws secret key',
            defaultValue: 'xxxxxxxxx')
 
+		string(name: 'public_subnet_1',
+           description: 'aws secret key',
+           defaultValue: 'xxxxxxxxx')
+		   
+		string(name: 'security_group_id',
+           description: 'aws secret key',
+           defaultValue: 'xxxxxxxxx')
+
+		string(name: 'public_subnet',
+           description: 'aws secret key',
+           defaultValue: 'xxxxxxxxx')
+
+		   
+		string(name: 'vpc_id',
+           description: 'aws secret key',
+           defaultValue: 'xxxxxxxxx')
+		   
+		string(name: 'key_name',
+           description: 'aws secret key',
+           defaultValue: 'xxxxxxxxx')
+
 	}
 	environment {
     // Slack configuration 
@@ -31,8 +52,8 @@ pipeline {
             steps {
                  sh  """
                     rm -rf ec2-terraform-packer.git
-		    git clone https://github.com/zamirajaupaj/ec2-terraform-packer.git
-		"""
+		    		git clone https://github.com/zamirajaupaj/ec2-terraform-packer.git
+				"""
             }
         }
         stage('Back-end') {
@@ -47,7 +68,8 @@ pipeline {
 					cd /home/ec2-terraform-packer
 					packer build -var aws_access_key=${AWS_KEY} -var aws_secret_key=${AWS_SECRET} packer/packer.json
 					terraform init
-					terraform plan -var 'AWS_KEY=${AWS_KEY}' -var 'AWS_SECRET=${AWS_SECRET}' -var 'region=${REGION}' -out tfplan
+					terraform plan -var 'AWS_KEY=${AWS_KEY}' -var 'AWS_SECRET=${AWS_SECRET}' -var 'region=${REGION}' -var 'public_subnet_1=${public_subnet_1}' -var 'security_group_id=${security_group_id}'  -var 'public_subnet=${public_subnet}' -var 'vpc_id=${vpc_id}' -var 'key_name=${key_name}'  -out tfplan
+					terraform apply tfplan
 					"""
             }
         }
